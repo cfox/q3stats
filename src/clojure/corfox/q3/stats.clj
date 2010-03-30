@@ -3,6 +3,29 @@
 	clojure.set)
   (:import (java.util Calendar)))
 
+(def player-names
+     {
+      "Adam"    #{"A-Dub" "AdamBomb" "DivisionStreet" "Flashmob" "HateWave" "SexyFlanders" "The Mojo"
+		  "Delerium Trigger" "The Despair Faction" "BadWolf" "Survivalism"}
+      "Darren"  #{"Fluffy Kitty" "Polymer" "Pookie" "Spolksky's Rectum"}
+      "Corbin"  #{"Boom King" "Boom Wireless VPN King" "Heat Death of the Universe" "SCORBION"
+		  "Jeff Atwood's Valet" "Magic Duck Sauce" "Multiplication Boulevard" "The Tough Brits" "Coprolalomaniacs Anonymous"}
+      "Justin"  #{"MB Scooby" "MBScooby" "MB_Scooby" "MB_Scooby2" "Turd Joyless Inn"}
+      "Madan"   #{"Madx"}
+      "Kevin"   #{"BigMac" "Sitting Duck"}
+      "Random"  #{"BlackGaff" "COBRA" "CamPeR" "Death" "EVILL" "FatFingers" "Foofi" "Graevyn" 
+		  "Guitar Ninja" "JoKeR" "JokeR" "Liquorished" "Omasal" "Rail Meat" 
+		  "The Doctor" "The Oncoming Storm" "W33NU$" "W33n13" "Zeke master" 
+		  "^1Q^7a^1z^7a^1Q" "adam" "josh" "kingpin" "liquorish" "nazgul" "omasal" "xoxx" "xtreme"}
+      })
+
+(defn find-player
+  [name]
+  (let [hits (filter #((second %) name) player-names)]
+    (if (empty? hits) "Unknown" 
+	(if (> (count hits) 1) "Ambiguous"
+	    (ffirst hits)))))
+
 (def *game-log* 
      "/home/cfox/personal/projects/q3stats/games.log")
 
@@ -54,7 +77,7 @@
   (let [[timecode id name ip] (rest (re-matches 
 #"\[([0-9]{2}:[0-9]{2}:[0-9]{2})\] ClientBegin: ([0-9]+) (.*) \(([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\:[0-9]+\)"
 				     l))]
-    {:event "ClientBegin" :timecode timecode :id id :name name :ip ip}))
+    {:event "ClientBegin" :timecode timecode :id id :name name :ip ip :player-name (find-player name)}))
 
 (defmethod parse-line "ClientUserinfoChanged" [l]
   (let [[timecode id name model arena] (rest (re-matches
@@ -123,7 +146,7 @@
 (def database (memoize generate-database))
 
 (defn players []
-  (let [ip-groups (group-by :ip ((database) "ClientBegin"))
+  (let [ip-groups (group-by :player-name ((database) "ClientBegin"))
 	get-names (fn [ip-cbs] (sort (fn [x y] (compare (second y) (second x))) 
 				     (frequencies (map :name ip-cbs))))
 	get-model (fn [n] 
@@ -138,10 +161,12 @@
 				     ((database) "ClientUserinfoChanged"))))))))]
     (sort (fn [x y] (compare (:maps-played y) (:maps-played x)))
 	  (filter #(>= (:maps-played %) 20)
-		  (map (fn [[ip ip-cbs]]
+		  (map (fn [[player-name ip-cbs]]
 			 (let [names (get-names ip-cbs)
-			       primary-name (first (first names))]
-			   {:name primary-name 
+			       primary-name (first (first names))
+			       ip (:ip ip-cbs)]
+			   {:player-name player-name
+			    :name primary-name 
 			    :maps-played (count ip-cbs)
 			    :model (get-model primary-name)
 			    :akas (map first (rest names)) 
@@ -182,19 +207,19 @@
   (let [mapname (:mapname  (find-first #(= (:event  %) "InitGame") m))
 	update-p (fn [p e]
 		   (if (= (:event e) "ClientBegin")
-		     (conj p {(:id e) (:ip e)})
+		     (conj p {(:id e) (:player-name e)})
 		     p))
 	update-k (fn [k p e]
 		   (if (= (:event e) "Kill")
 		     (cons 
 		      (dissoc 
-		       (conj e {:ip (p (:id e))
-				:victim-ip (p (:victim-id e))
+		       (conj e {:player-name (p (:id e))
+				:victim-player-name (p (:victim-id e))
 				:mapname mapname})
 		       :event :id :victim-id)
 		      k)
 		     k))]
-    (loop [p (hash-map)
+    (loop [p {"1022" "Environment"}
 	   k (list)
 	   e (first m)
 	   r (rest m)]
@@ -210,11 +235,11 @@
 
 (defn player-kills
   [player]
-  (filter #(= (:ip %) (:ip player)) (kills)))
+  (filter #(= (:player-name %) (:player-name player)) (kills)))
 
 (defn player-deaths
   [player]
-  (filter #(= (:victim-ip %) (:ip player)) (kills)))
+  (filter #(= (:victim-player-name %) (:player-name player)) (kills)))
 
 (defn total-kills
   [player]
@@ -290,10 +315,10 @@
   (:color (first (select #(= (:group %) (weapon-group weapon)) 
 			 weapon-group-metadata))))
 
-(defn build-ip-to-name-map []
-     (reduce conj {} (map (fn [p] {(:ip p) (:name p)}) (players))))
+(defn build-player-name-to-name-map []
+     (reduce conj {} (map (fn [p] {(:player-name p) (:name p)}) (players))))
 
-(def ip-to-name (memoize build-ip-to-name-map))
+(def player-name-to-name (memoize build-player-name-to-name-map))
 
 (defn kills-by-victim
   [player]
@@ -301,7 +326,7 @@
     (map (fn [[v ks]]
 	   (let [vks (count ks)]
 	     [v vks (ratio-to-float (/ vks tks))]))
-	 (group-by (fn [k] (get (ip-to-name) (:victim-ip k) "Other"))
+	 (group-by (fn [k] (get (player-name-to-name) (:victim-player-name k) "Other"))
 		   (player-kills player)))))
 
 (defn build-player-color-map []
