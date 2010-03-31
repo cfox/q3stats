@@ -96,11 +96,11 @@
 
 (defn map-summary-header [map]
   (let [mapname (:mapname map)]
-    (str mapname " - " (map-label mapname))))
+    (str mapname " - " (map-label mapname) " - " (:kills map) " Total Kills")))
 
 (defhtml map-index-accordion
   []
-  (let [displayed-maps (take 3 (maps))]
+  (let [displayed-maps (filter #(> (:kills %) 200) (maps))]
     (accordion (interleave 
 		(map map-summary-header displayed-maps)
 		(map map-summary-section displayed-maps)))))
@@ -111,7 +111,7 @@
      (map-str (fn [a] 
 		(let [arena (:arena a)] 
 		  (html [:span 
-			 [:h4 (arena-label mapname arena)]
+			 [:h4 (str (arena-label mapname arena) " - " (:kills ((:arenas map) arena)) " Kills")]
 			 [:img {:src (arena-image-path mapname arena) 
 				:alt (arena-label mapname arena)}]
 			 (ofchart 
@@ -138,4 +138,4 @@
 
 (defn map-index
   []
-  (map-index-tabs))
+  (map-index-accordion))

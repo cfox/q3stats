@@ -43,7 +43,7 @@
      [:script {:type "text/javascript"}
       (str
        "$(document).ready(function(){"
-       "$(\"#" div-id "\").accordion();"
+       "$(\"#" div-id "\").accordion({active:false,collapsible:true});"
        "});")]
      [:div {:id div-id}
       (map-str

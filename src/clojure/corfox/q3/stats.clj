@@ -182,7 +182,8 @@
 
 (defn maps []
   (let [view (join ((database) "InitGame") ((database) "Kill") {:mapid :mapid})
-	mapname-groups (group-by :mapname view)]
+	mapname-groups (filter #(re-matches #"ra3map([0-9]+)$" (first %))
+			       (group-by :mapname view))]
     (sort mapsort
 	  (map (fn [[mapname rows]]
 		 {:mapname mapname
