@@ -6,16 +6,17 @@
 (def player-names
      {
       "Adam"    #{"A-Dub" "AdamBomb" "DivisionStreet" "Flashmob" "HateWave" "SexyFlanders" "The Mojo"
-		  "Delerium Trigger" "The Despair Faction" "BadWolf" "Survivalism"}
+		  "Delerium Trigger" "The Despair Faction" "BadWolf" "Survivalism" "The Oncoming Storm"}
       "Darren"  #{"Fluffy Kitty" "Polymer" "Pookie" "Spolksky's Rectum"}
       "Corbin"  #{"Boom King" "Boom Wireless VPN King" "Heat Death of the Universe" "SCORBION"
-		  "Jeff Atwood's Valet" "Magic Duck Sauce" "Multiplication Boulevard" "The Tough Brits" "Coprolalomaniacs Anonymous"}
+		  "Jeff Atwood's Valet" "Magic Duck Sauce" "Multiplication Boulevard" "The Tough Brits" 
+		  "Coprolalomaniacs Anonymous"}
       "Justin"  #{"MB Scooby" "MBScooby" "MB_Scooby" "MB_Scooby2" "Turd Joyless Inn"}
       "Madan"   #{"Madx"}
-      "Kevin"   #{"BigMac" "Sitting Duck"}
+      "Kevin"   #{"BigMac" "Sitting Duck" "Rail Meat"}
       "Random"  #{"BlackGaff" "COBRA" "CamPeR" "Death" "EVILL" "FatFingers" "Foofi" "Graevyn" 
-		  "Guitar Ninja" "JoKeR" "JokeR" "Liquorished" "Omasal" "Rail Meat" 
-		  "The Doctor" "The Oncoming Storm" "W33NU$" "W33n13" "Zeke master" 
+		  "Guitar Ninja" "JoKeR" "JokeR" "Liquorished" "Omasal" 
+		  "The Doctor" "W33NU$" "W33n13" "Zeke master" 
 		  "^1Q^7a^1z^7a^1Q" "adam" "josh" "kingpin" "liquorish" "nazgul" "omasal" "xoxx" "xtreme"}
       })
 
@@ -275,6 +276,8 @@
        {:group "BFG" :color "8304ef"}
        {:group "Environment" :color "888888"}})
 
+(def weapon-groups (filter #(not (= "Environment" %)) (map :group weapon-group-metadata)))
+
 (def weapon-metadata
      #{{:weapon-id 1 :weapon "MOD_SHOTGUN" :group "Shotgun"}
        {:weapon_id 2 :weapon "MOD_GAUNTLET" :group "Gauntlet"}
@@ -309,6 +312,54 @@
 	      (:color (first (select #(= (:group %) wg) 
 				     weapon-group-metadata)))]))
 	 (group-by #(weapon-group (:weapon %)) (player-kills player)))))
+
+(defn player-kills-by-weapon 
+  [wg]	
+  (map (fn [p] 
+	 (let [[_ total pct] (find-first (fn [[x]] (= wg x)) 
+					 (kills-by-weapon p))]
+	   [(:name p) (or total 0) (or pct 0.0)]))
+       (players)))
+
+(defn weapon-group-image-path
+  [wg]
+  (str "/resources/" wg "h.jpg"))
+
+(defn most-kills [wg] (first (first (sort #(> (second %1) (second %2))
+					  (player-kills-by-weapon wg)))))
+
+(defn highest-kill-pct [wg] (first (first (sort #(> (nth %1 2) (nth %2 2))
+						(player-kills-by-weapon wg)))))
+
+(defn weapon-badges-kills
+  [player]
+  (let [name (:name player)
+	wgs (filter #(= (most-kills %) name) weapon-groups)]
+    (reduce conj [] (map (fn [wg] {:name name
+				   :weapon wg
+				   :badge-type "Most Kills"
+				   :description (str name " has the most kills with " wg "!")
+				   :image (weapon-group-image-path wg)})
+			 wgs))))
+
+(defn weapon-badges-pct
+  [player]
+  (let [name (:name player)
+	wgs (filter #(= (highest-kill-pct %) name) weapon-groups)]
+    (reduce conj [] (map (fn [wg] {:name name
+				   :weapon wg
+				   :badge-type "Highest Kill Pct"
+				   :description (str name " has the highest pct of kills with " wg "!")
+				   :image (weapon-group-image-path wg)})
+			 wgs))))
+
+(defn get-weapon-badges
+  []
+  (concat 
+   (flatten (map weapon-badges-kills (players)))
+   (flatten (map weapon-badges-pct (players)))))
+
+(def weapon-badges (memoize get-weapon-badges))
 
 (defn weapon-color
   [weapon]

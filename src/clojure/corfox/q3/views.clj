@@ -29,9 +29,22 @@
      [:img {:src (str "/resources/icons/" img)
 	    :alt name}])))
 
+(defn badges [player]
+  (let [name (:name player)
+	badges (filter #(= name (:name %)) (weapon-badges))
+	badge-groups (group-by :badge-type badges)
+	make-badge-cell (fn [b] (html [:td [:img {:src (:image b)
+						  :width 24 :height 24
+						  :alt (:description b)
+						  :title (:description b)}]]))
+	make-badge-row (fn [bs] (html [:tr (map-str make-badge-cell bs)]))]
+    (map-str make-badge-row (vals badge-groups))))
+
 (defhtml player-summary-row [player]
   [:tr.player-summary
-   [:td (model-img player)]
+   [:td [:table
+	 [:tr [:td (model-img player)]]
+	 [:tr [:td [:table (badges player)]]]]]
    [:td [:table
 	 [:tr [:td (name-link (:name player))]]
 	 [:tr [:td (if (not (empty? (:akas player)))
