@@ -2,14 +2,14 @@
   (:import (java.io File))
   (:use (corfox.q3 stats web ofchart)
 	(clojure.contrib seq-utils)
-	(compojure encodings)
-	(clj-html core utils)))
+	(compojure encodings str-utils)
+	(clj-html core helpers)))
 
 (def *resource-dir*
      "/home/cfox/personal/projects/q3stats/resources")
 
 (defhtml name-link [name]
-  [:a {:href (str "/player/" name)} name])
+  [:h3 [:a {:href (str "/player/" name)} name]])
 
 (defn model-img [player]
   (let [default-img "ranger-1.jpg"
@@ -40,11 +40,18 @@
 	make-badge-row (fn [bs] (html [:tr (map-str make-badge-cell bs)]))]
     (map-str make-badge-row (vals badge-groups))))
 
+(defn excel-badges [player]
+  (let [excel-count (count (excellence-badges player))]
+    (html [:table [:tr 
+		   [:td [:img {:src "/resources/excellent_48.png" :alt "Excellent!" :title "Excellent!"}]]
+		   [:td (str "x" excel-count)]]])))
+
 (defhtml player-summary-row [player]
   [:tr.player-summary
    [:td [:table
 	 [:tr [:td (model-img player)]]
-	 [:tr [:td [:table (badges player)]]]]]
+	 [:tr [:td [:table (badges player)]]]
+	 [:tr [:td (excel-badges player)]]]]
    [:td [:table
 	 [:tr [:td (name-link (:name player))]]
 	 [:tr [:td (if (not (empty? (:akas player)))

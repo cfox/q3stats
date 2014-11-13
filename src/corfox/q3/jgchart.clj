@@ -1,6 +1,6 @@
 (ns corfox.q3.jgchart
   (:use (clojure.contrib seq-utils)
-	(clj-html core utils)))
+	(clj-html core helpers)))
 
 (defn jg-data [vec]                                                     
   (let [helper (fn [v] 

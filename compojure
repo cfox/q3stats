@@ -1,6 +1,6 @@
 #!/bin/sh
 COMPOJURE_HOME=/home/cfox/tools/compojure
-CLASSPATH=src/clojure:$COMPOJURE_HOME/compojure.jar
+CLASSPATH=src:$COMPOJURE_HOME/compojure.jar
  
 for f in $COMPOJURE_HOME/deps/*.jar; do
     CLASSPATH=$CLASSPATH:$f
@@ -10,4 +10,4 @@ for f in ./lib/*.jar; do
     CLASSPATH=$CLASSPATH:$f
 done
  
-java -cp $CLASSPATH clojure.lang.Script site.clj
+java -cp $CLASSPATH clojure.lang.Script src/corfox/q3/site.clj

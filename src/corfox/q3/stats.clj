@@ -6,17 +6,21 @@
 (def player-names
      {
       "Adam"    #{"A-Dub" "AdamBomb" "DivisionStreet" "Flashmob" "HateWave" "SexyFlanders" "The Mojo"
-		  "Delerium Trigger" "The Despair Faction" "BadWolf" "Survivalism" "The Oncoming Storm"}
+		  "Delerium Trigger" "The Despair Faction" "BadWolf" "Survivalism" "The Oncoming Storm"
+		  "Born Slippy" "A" "a" "terrorhawk" "cerpin taxt" "Parasite" "Barking" "Spawn (Again)" 
+		  "Util.java" "Legion of Boom" "The Beast" "Jeddy 3" "EonBlueApocalypse" "Killbot 2000" 
+		  "Totalimmortal" "Bleed Black" "The Crowing" "One Armed Scissor" "Tiger Army"}
       "Darren"  #{"Fluffy Kitty" "Polymer" "Pookie" "Spolksky's Rectum"}
       "Corbin"  #{"Boom King" "Boom Wireless VPN King" "Heat Death of the Universe" "SCORBION"
 		  "Jeff Atwood's Valet" "Magic Duck Sauce" "Multiplication Boulevard" "The Tough Brits" 
-		  "Coprolalomaniacs Anonymous"}
+		  "Coprolalomaniacs Anonymous" "Fear and Thunder" "Peed Black"}
       "Justin"  #{"MB Scooby" "MBScooby" "MB_Scooby" "MB_Scooby2" "Turd Joyless Inn"}
       "Madan"   #{"Madx"}
       "Kevin"   #{"BigMac" "Sitting Duck" "Rail Meat"}
+      "Charles" #{"w00t" "JoKeR" "JokeR" "n00b"}
       "Random"  #{"BlackGaff" "COBRA" "CamPeR" "Death" "EVILL" "FatFingers" "Foofi" "Graevyn" 
-		  "Guitar Ninja" "JoKeR" "JokeR" "Liquorished" "Omasal" 
-		  "The Doctor" "W33NU$" "W33n13" "Zeke master" 
+		  "Guitar Ninja" "Liquorished" "Omasal" 
+		  "The Doctor" "W33NU$" "W33n13" "Zeke master" "UnnamedPlayer"
 		  "^1Q^7a^1z^7a^1Q" "adam" "josh" "kingpin" "liquorish" "nazgul" "omasal" "xoxx" "xtreme"}
       })
 
@@ -53,7 +57,7 @@
 		    (.set (Calendar/MINUTE) m)
 		    (.set (Calendar/SECOND) s))]
 	    (/ (. c getTimeInMillis) 1000)))]
-    (- (rel-time t2) (rel-time t1))))
+    (int (- (rel-time t2) (rel-time t1)))))
 		     
 (defn timecode
   "Get timecode from a line in a q3 log."
@@ -146,10 +150,11 @@
 
 (def database (memoize generate-database))
 
-(defn players []
-  (let [ip-groups (group-by :player-name ((database) "ClientBegin"))
-	get-names (fn [ip-cbs] (sort (fn [x y] (compare (second y) (second x))) 
-				     (frequencies (map :name ip-cbs))))
+(defn get-players []
+  (let [player-groups (group-by :player-name ((database) "ClientBegin"))
+	get-names (fn [player-connections] 
+		    (sort (fn [x y] (compare (second y) (second x))) 
+			  (frequencies (map :name player-connections))))
 	get-model (fn [n] 
 		    (first 
 		     (first 
@@ -161,18 +166,19 @@
 			     (filter #(= (:name %) n) 
 				     ((database) "ClientUserinfoChanged"))))))))]
     (sort (fn [x y] (compare (:maps-played y) (:maps-played x)))
-	  (filter #(>= (:maps-played %) 20)
-		  (map (fn [[player-name ip-cbs]]
-			 (let [names (get-names ip-cbs)
-			       primary-name (first (first names))
-			       ip (:ip ip-cbs)]
+	  (filter #(>= (:maps-played %) 1)
+		  (map (fn [[player-name player-connections]]
+			 (let [names (get-names player-connections)
+			       primary-name (first (first names))]
 			   {:player-name player-name
 			    :name primary-name 
-			    :maps-played (count ip-cbs)
+			    :maps-played (count player-connections)
 			    :model (get-model primary-name)
-			    :akas (map first (rest names)) 
-			    :ip ip}))
-		       ip-groups)))))
+			    :akas (map first (rest names))
+			    }))
+		       player-groups)))))
+
+(def players (memoize get-players))
 
 (defn map-number [m] 
   (Integer/parseInt (second (re-matches #"ra3map([0-9]+)$" (:mapname m)))))
@@ -206,7 +212,7 @@
 			     v)))))
 
 (defn get-map-kills [m]
-  (let [mapname (:mapname  (find-first #(= (:event  %) "InitGame") m))
+  (let [{:keys [mapname timecode]} (find-first #(= (:event  %) "InitGame") m)
 	update-p (fn [p e]
 		   (if (= (:event e) "ClientBegin")
 		     (conj p {(:id e) (:player-name e)})
@@ -217,7 +223,8 @@
 		      (dissoc 
 		       (conj e {:player-name (p (:id e))
 				:victim-player-name (p (:victim-id e))
-				:mapname mapname})
+				:mapname mapname
+				:nth-second (seconds-between timecode (:timecode e))})
 		       :event :id :victim-id)
 		      k)
 		     k))]
@@ -361,6 +368,31 @@
    (flatten (map weapon-badges-pct (players)))))
 
 (def weapon-badges (memoize get-weapon-badges))
+
+(defn get-excellence-badges
+  ([] 
+     (reduce concat (map get-excellence-badges (players))))
+  ([player]
+     (reduce concat (map (partial get-excellence-badges player) (parse-maps))))
+  ([player parsed-map]
+     (let [{:keys [player-name name]} player
+	   kills (sort #(< (:nth-second %1) (:nth-second %2)) 
+		       (filter #(= player-name (:player-name %)) 
+			       (get-map-kills parsed-map)))
+	   kill-pairs (partition 2 1 kills)
+	   excellences (filter (fn [[k1 k2]] 
+				 (<= (- (:nth-second k2) (:nth-second k1)) 2))
+				 kill-pairs)
+	   badge-builder (fn [[k1 k2]]
+			   {:name name
+			    :weapon1 (:weapon k1)
+			    :weapon2 (:weapon k2)
+			    :mapname (:mapname k1)
+			    :arena (:arena k1)
+			    :interval (- (:nth-second k2) (:nth-second k1))})]
+       (reduce conj [] (map badge-builder excellences)))))
+
+(def excellence-badges (memoize get-excellence-badges))
 
 (defn weapon-color
   [weapon]

@@ -1,6 +1,7 @@
 (ns corfox.q3.web
   (:use (clojure.contrib seq-utils)
-	(clj-html core utils)))
+	(clj-html core helpers)
+	(compojure str-utils)))
 
 (defn inner-html [x]
   (if (sequential? x) (apply str (interpose ", " x)) (str x)))

@@ -1,6 +1,6 @@
 (ns corfox.q3.ofchart
   (:use (clojure.contrib seq-utils)
-	(clj-html core utils)
+	(clj-html core helpers)
 	(org.danlarkin json)))
 
 ; Expects jquery and swfobject to be loaded.

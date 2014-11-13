@@ -1,3 +1,4 @@
+(ns corfox.q3.site)
 (use 'compojure)
 (use '(corfox.q3 stats web views charts ofchart))
 
@@ -38,7 +39,7 @@
   (GET "/humans"
        (page "Humans"
              [:div
-              [:h1 "Humans"]
+              [:h1 "Humans Are The Best!"]
 	      [:div.panel (human-index)]]))
 
   (GET "/players"
@@ -74,5 +75,18 @@
   (ANY "*"
        (page-not-found)))
 
-(run-server {:port 8080}
-	    "/*" (servlet my-app))
+;; ========================================
+;; The App
+;; ========================================
+
+(defonce *app* (atom nil))
+
+(defn start-app []
+  (if (not (nil? @*app*))
+    (stop @*app*))
+  (reset! *app* (run-server {:port 8666}
+                            "/*" (servlet my-app))))
+
+(defn stop-app []
+  (when @*app* (stop @*app*))
+)
