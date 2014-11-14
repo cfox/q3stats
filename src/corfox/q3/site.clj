@@ -1,6 +1,11 @@
-(ns corfox.q3.site)
-(use 'compojure)
-(use '(corfox.q3 stats web views charts ofchart))
+(ns corfox.q3.site
+  (:use [corfox.q3 stats web views charts ofchart]
+        compojure.core
+        hiccup.core
+        [hiccup.middleware :only (wrap-base-url)])
+  (:require [compojure.route :as route]
+            [compojure.handler :as handler]
+            [compojure.response :as response]))
 
 (def my-meta [:meta {:http-equiv "Content-type" 
 		     :content "text/html;charset=UTF-8"}])
@@ -24,69 +29,73 @@
   (html [:html tags (head-setup title)
 	 [:body content]]))
 
-(defroutes my-app
-  (GET "/resources/*" (or (serve-file "./resources" (params :*)) :next))
-
-  (GET "/"
+(defroutes main-routes
+  (GET "/" []
        (page "Hello!" [:div.panel [:h1 "Hello World"] 
-		       (chart "data.json")
-		       (chart "data2.json")
+;		       (chart "data.json")
+;		       (chart "data2.json")
 		       ]))
 
-  (GET "/chart/:chartname"
-       [200, {:Content-type "application/json"} (chart params)])
+  (GET "/chart/:chartname" [chartname]
+       [200, {:Content-type "application/json"} (chart {:chartname chartname})])
 
-  (GET "/humans"
+  (GET "/humans" []
        (page "Humans"
              [:div
               [:h1 "Humans Are The Best!"]
 	      [:div.panel (human-index)]]))
 
-  (GET "/players"
+  (GET "/players" []
        (page "Player Index" 
 	     [:div
 	      [:h1 "Player Index"]
 	      [:div.panel (player-index)]]))
 
-  (GET "/player/:name"
-       (page (params :name)
+  (GET "/player/:name" [name]
+       (page name
 	     [:div
-	      [:h1 (params :name)]
-	      [:div.panel (player-detail (params :name))]]))
+	      [:h1 name]
+	      [:div.panel (player-detail name)]]))
 
-  (GET "/maps"
+  (GET "/maps" []
        (page "Map Index"
 	     [:div
 	      [:h1 "Maps"]
 	      [:div.panel (map-index)]]))
 
-  (GET "/maptab/:mapname/:tab-id"
-       (page (str (params :mapname) " - " (map-label (params :mapname)))
-	     (map-tab (params :mapname) (params :tab-id))))
+  (GET "/maptab/:mapname/:tab-id" [mapname tab-id]
+       (page (str mapname) " - " (map-label mapname))
+	     (map-tab mapname tab-id))
 
-  (GET "/weapons"
+  (GET "/weapons" []
        (page "Weapon Index"
 	     [:div
 	      [:h1 "Weapons"]
 	      [:div (table (weapons))]]))
   
-  (GET "*" (or (serve-file "." (params :*)) :next))
+  ;(GET "*" (or (serve-file "." (params :*)) :next))
+  ;(GET "/resources/*" (or (serve-file "./resources" (params :*)) :next))
+  (route/files "/")
 
-  (ANY "*"
-       (page-not-found)))
+  ;(ANY "*" (page-not-found))
+  (route/not-found "Page not found")
+
+  )
+
+(def app (-> (handler/site main-routes)
+             (wrap-base-url)))
 
 ;; ========================================
 ;; The App
 ;; ========================================
 
-(defonce *app* (atom nil))
+;(defonce *app* (atom nil))
 
-(defn start-app []
-  (if (not (nil? @*app*))
-    (stop @*app*))
-  (reset! *app* (run-server {:port 8666}
-                            "/*" (servlet my-app))))
+;(defn start-app []
+;  (if (not (nil? @*app*))
+;    (stop @*app*))
+;  (reset! *app* (run-server {:port 8666}
+;                            "/*" (servlet my-app))))
 
-(defn stop-app []
-  (when @*app* (stop @*app*))
-)
+;(defn stop-app []
+;  (when @*app* (stop @*app*)))

@@ -1,7 +1,6 @@
 (ns corfox.q3.ofchart
-  (:use (clojure.contrib seq-utils)
-	(clj-html core helpers)
-	(org.danlarkin json)))
+  (:require [clojure.data.json :as json])
+  (:use (hiccup core)))
 
 ; Expects jquery and swfobject to be loaded.
 ; Funny div at the end is to force end tag, 
@@ -23,7 +22,7 @@
 ;     (str "<div class=\"chart\" id=\"" div-id "\"></div>"))))
 
 (defn ofchart-data [values labels colors]
-  (encode-to-str
+  (json/write-str
    {"bg_colour" "#000000"
     "elements"
     [{"type" "pie"

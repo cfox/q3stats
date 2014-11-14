@@ -27,3 +27,4 @@ open-flash-chart.swf
 readme-resources
 resources/
 wordle.html
+.lein*

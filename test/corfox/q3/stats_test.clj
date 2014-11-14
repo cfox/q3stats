@@ -2,5 +2,5 @@
   (:use [corfox.q3.stats] :reload-all)
   (:use [clojure.test]))
 
-(deftest replace-me ;; FIXME: write
-  (is false))
+(deftest smoke-test
+  (is (contains? player-names "Adam")))

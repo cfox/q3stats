@@ -1,7 +1,9 @@
 (ns corfox.q3.web
-  (:use (clojure.contrib seq-utils)
-	(clj-html core helpers)
-	(compojure str-utils)))
+  (:use (hiccup core)))
+
+(defn map-str
+  [f coll]
+  (apply str (map f coll)))
 
 (defn inner-html [x]
   (if (sequential? x) (apply str (interpose ", " x)) (str x)))
@@ -12,11 +14,11 @@
 	end-tag (apply str ["</" tag ">"])]
     (apply str [start-tag inner end-tag])))
 
-(defhtml li [x]
-  [:li (inner-html x)])
+(defn li [x]
+  (html [:li (inner-html x)]))
 
-(defhtml ul [coll]
-  [:ul (map-str li coll)])
+(defn ul [coll]
+  (html [:ul (map-str li coll)]))
 
 (declare table)
 
@@ -29,8 +31,8 @@
 	(html [:td (ul x)])))
     (html [:td (inner-html x)])))
 
-(defhtml row [coll] 
-  [:tr (map-str cell coll)])
+(defn row [coll] 
+  (html [:tr (map-str cell coll)]))
 
 (defn table [rs]
   (if (not (empty? rs))

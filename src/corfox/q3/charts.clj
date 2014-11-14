@@ -1,12 +1,11 @@
 (ns corfox.q3.charts
-  (:use (corfox.q3 stats ofchart)
-	(clojure.contrib seq-utils)))
+  (:use (corfox.q3 stats ofchart)))
 
 (defmulti chart
   (fn [m] (:chartname m)))
 
 (defn extract-player [m]
-  (find-first #(= (:name %) (:player m)) (players)))
+  (first (filter #(= (:name %) (:player m)) (players))))
 
 (defmethod chart "player-kills-by-weapon" [m]
   (let [player (extract-player m)

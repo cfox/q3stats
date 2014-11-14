@@ -1,6 +1,5 @@
 (ns corfox.q3.stats
-  (:use (clojure.contrib duck-streams seq-utils)
-	clojure.set)
+  (:use clojure.set)
   (:import (java.util Calendar)))
 
 (def player-names
@@ -32,18 +31,20 @@
 	    (ffirst hits)))))
 
 (def *game-log* 
-     "/home/cfox/personal/projects/q3stats/games.log")
+     "games.log")
 
 (defn map-seq
-  "Get a sequence of maps from a q3 log file."
-  []
-  (let [delimiter #(re-matches #".*----------.*" %)] 
-    (filter #(not (some delimiter %)) 
-	    (partition-by delimiter (read-lines *game-log*)))))
+  "Given a sequence of lines from a q3 log file, return a sequence of maps (line groups)."
+  [lines]
+    (let [delimiter #(re-matches #".*----------.*" %)] 
+      (filter #(not (some delimiter %)) 
+              (partition-by delimiter lines))))
 
-(defn played-map-seq []
+(defn played-map-seq
+  "Given a sequence of lines from a q3 log file, return a sequence of played maps (line groups)."
+  [lines]
   (filter #(some (fn [l] (re-matches #".*ClientConnect.*" l)) %) 
-	  (map-seq)))
+	  (map-seq lines)))
 
 (defn seconds-between
   "Get number of seconds elapsed between t1 and t2.  Use 'HH24:MM:SS' format."
@@ -135,11 +136,21 @@
        (filter #(not (nil? %)) (map parse-line m))
        (repeat mapid)))
 
-(defn parse-maps []
-  (map parse-map (played-map-seq) 
-       (iterate (fn [v] [(first v) (inc (second v))]) [:mapid 1])))
+(defn parse-maps-once
+  "Parse the palyed games from the game log into stats."
+  []
+  (let [map-data (ref [])]
+    (with-open [rdr (clojure.java.io/reader *game-log*)]
+      (doseq [rawdata (played-map-seq (line-seq rdr))
+              metadata (iterate (fn [v] [(first v) (inc (second v))])
+                                [:mapid 1])]
+        (dosync
+         (alter map-data conj (parse-map rawdata metadata)))))
+    map-data))
+  
+(def parse-maps (memoize parse-maps-once))
 
-(defn generate-database [] 
+(defn generate-database []
      (apply hash-map
 	    (flatten
 	     (map (fn [x] [(:event (first x)) x])
@@ -212,7 +223,8 @@
 			     v)))))
 
 (defn get-map-kills [m]
-  (let [{:keys [mapname timecode]} (find-first #(= (:event  %) "InitGame") m)
+  (let [{:keys [mapname timecode]} (first (filter #(= (:event  %) "InitGame")
+                                                  m))
 	update-p (fn [p e]
 		   (if (= (:event e) "ClientBegin")
 		     (conj p {(:id e) (:player-name e)})
@@ -324,8 +336,8 @@
 (defn player-kills-by-weapon 
   [wg]	
   (map (fn [p] 
-	 (let [[_ total pct] (find-first (fn [[x]] (= wg x)) 
-					 (kills-by-weapon p))]
+	 (let [[_ total pct] (first (filter (fn [[x]] (= wg x)) 
+                                            (kills-by-weapon p)))]
 	   [(:name p) (or total 0) (or pct 0.0)]))
        (players)))
 

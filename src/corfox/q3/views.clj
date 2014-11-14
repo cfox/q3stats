@@ -1,15 +1,14 @@
 (ns corfox.q3.views
   (:import (java.io File))
   (:use (corfox.q3 stats web ofchart)
-	(clojure.contrib seq-utils)
-	(compojure encodings str-utils)
-	(clj-html core helpers)))
+	(compojure core)
+	(hiccup core util)))
 
 (def *resource-dir*
-     "/home/cfox/personal/projects/q3stats/resources")
+     "resources")
 
-(defhtml name-link [name]
-  [:h3 [:a {:href (str "/player/" name)} name]])
+(defn name-link [name]
+  (html [:h3 [:a {:href (str "/player/" name)} name]]))
 
 (defn model-img [player]
   (let [default-img "ranger-1.jpg"
@@ -46,45 +45,45 @@
 		   [:td [:img {:src "/resources/excellent_48.png" :alt "Excellent!" :title "Excellent!"}]]
 		   [:td (str "x" excel-count)]]])))
 
-(defhtml player-summary-row [player]
-  [:tr.player-summary
-   [:td [:table
-	 [:tr [:td (model-img player)]]
-	 [:tr [:td [:table (badges player)]]]
-	 [:tr [:td (excel-badges player)]]]]
-   [:td [:table
-	 [:tr [:td (name-link (:name player))]]
-	 [:tr [:td (if (not (empty? (:akas player)))
-		     (str "AKA: " 
-			  (apply str 
-				 (interpose ", " 
-					    (take 2 (:akas player))))))]]
-	 [:tr [:td (str "Maps Played: " (:maps-played player))]]
-	 [:tr [:td (str "Total Kills: " (total-kills player))]]
-	 [:tr [:td (str "Total Deaths: " (total-deaths player))]]
-	 [:tr [:td (str "Kills per Map: " (kills-per-map player))]]
-	 [:tr [:td (str "Kill/Death Ratio: " (kill-death-ratio player))]]]]
-   [:td (ofchart 
-	 (str "/chart/player-kills-by-weapon?"
-	      (urlencode (str "player=" (:name player)))))]
-   [:td (ofchart 
-	 (str "/chart/player-kills-by-victim?"
-	      (urlencode (str "player=" (:name player)))))]
-   ])
+(defn player-summary-row [player]
+  (html [:tr.player-summary
+         [:td [:table
+               [:tr [:td (model-img player)]]
+               [:tr [:td [:table (badges player)]]]
+               [:tr [:td (excel-badges player)]]]]
+         [:td [:table
+               [:tr [:td (name-link (:name player))]]
+               [:tr [:td (if (not (empty? (:akas player)))
+                           (str "AKA: " 
+                                (apply str 
+                                       (interpose ", " 
+                                                  (take 2 (:akas player))))))]]
+               [:tr [:td (str "Maps Played: " (:maps-played player))]]
+               [:tr [:td (str "Total Kills: " (total-kills player))]]
+               [:tr [:td (str "Total Deaths: " (total-deaths player))]]
+               [:tr [:td (str "Kills per Map: " (kills-per-map player))]]
+               [:tr [:td (str "Kill/Death Ratio: " (kill-death-ratio player))]]]]
+         [:td (ofchart 
+               (str "/chart/player-kills-by-weapon?"
+                    (url-encode (str "player=" (:name player)))))]
+         [:td (ofchart 
+               (str "/chart/player-kills-by-victim?"
+                    (url-encode (str "player=" (:name player)))))]
+         ]))
 		   
-(defhtml player-index []
-  [:table
+(defn player-index []
+  (html [:table
    (map-str player-summary-row 
 	    (sort (fn [x y] (> (kill-death-ratio x) 
 			       (kill-death-ratio y)))
-		  (players)))])
+		  (players)))]))
 
-(defhtml player-detail [name]
-  [:table
-   (player-summary-row (find-first #(= (:name %) name) (players)))])
+(defn player-detail [name]
+  (html[:table
+   (player-summary-row (first (filter #(= (:name %) name) (players))))]))
 
-(defhtml human-index []
-  [:p "Kill all humans!"])
+(defn human-index []
+  (html [:p "Kill all humans!"]))
 
 (defn map-summary-section [map]
   (let [mapname (:mapname map)]
@@ -97,7 +96,7 @@
 				:alt (arena-label mapname arena)}]
 			 (ofchart 
 			  (str "/chart/arena-kills-by-weapon?"
-			       (urlencode 
+			       (url-encode 
 				(str "mapname=" mapname "&" "arena=" arena))))])))
 	      (:arenas map)))))
 
@@ -105,12 +104,12 @@
   (let [mapname (:mapname map)]
     (str mapname " - " (map-label mapname) " - " (:kills map) " Total Kills")))
 
-(defhtml map-index-accordion
+(defn map-index-accordion
   []
-  (let [displayed-maps (filter #(> (:kills %) 200) (maps))]
+  (html (let [displayed-maps (filter #(> (:kills %) 200) (maps))]
     (accordion (interleave 
 		(map map-summary-header displayed-maps)
-		(map map-summary-section displayed-maps)))))
+		(map map-summary-section displayed-maps))))))
 
 (defn map-summary-tab [map tab-id]
   (let [mapname (:mapname map)]
@@ -123,25 +122,26 @@
 				:alt (arena-label mapname arena)}]
 			 (ofchart 
 			  (str "/chart/arena-kills-by-weapon?"
-			       (urlencode 
+			       (url-encode 
 				(str "mapname=" mapname "&" "arena=" arena))))])))
 	      (:arenas map)))))
 
 (defn map-tab
   [mapname tab-id]
-     (map-summary-tab (find-first #(= mapname (:mapname %)) (maps)) tab-id))
+     (map-summary-tab (first (filter #(= mapname (:mapname %)) (maps))) tab-id))
 
 (defn map-url
   [mapname tab-id]
   (str "/maptab/" mapname "/" tab-id))
 
-(defhtml map-index-tabs
+(defn map-index-tabs
   []
-  (let [displayed-maps (take 3 (maps))]
+  (html
+   (let [displayed-maps (take 3 (maps))]
     (dynamic-tabs
      (map map-summary-header displayed-maps)
      (map #(partial map-url (:mapname %)) displayed-maps)
-     nil)))
+     nil))))
 
 (defn map-index
   []
