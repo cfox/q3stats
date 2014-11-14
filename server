@@ -1,5 +1,5 @@
 #!/bin/sh
-COMPOJURE_HOME=/home/cfox/tools/compojure
+COMPOJURE_HOME=compojure
 CLASSPATH=src:$COMPOJURE_HOME/compojure.jar
  
 for f in $COMPOJURE_HOME/deps/*.jar; do
