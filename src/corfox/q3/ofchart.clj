@@ -12,7 +12,7 @@
       (str
        "$(document).ready( function() {"
        "swfobject.embedSWF("
-       "'/open-flash-chart.swf', '" div-id "',"
+       "'/resources/open-flash-chart.swf', '" div-id "',"
        "'400', '200', '9.0.0', 'expressInstall.swf',"
        "{'loading':'Totting Frags...',"
        "'data-file':'" data-file "'}"

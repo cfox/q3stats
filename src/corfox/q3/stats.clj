@@ -141,12 +141,13 @@
   []
   (let [map-data (ref [])]
     (with-open [rdr (clojure.java.io/reader *game-log*)]
-      (doseq [rawdata (played-map-seq (line-seq rdr))
-              metadata (iterate (fn [v] [(first v) (inc (second v))])
-                                [:mapid 1])]
+      (doseq [inputs (map list
+                          (played-map-seq (line-seq rdr))
+                          (iterate (fn [v] [(first v) (inc (second v))])
+                                   [:mapid 1]))]
         (dosync
-         (alter map-data conj (parse-map rawdata metadata)))))
-    map-data))
+         (alter map-data conj (parse-map (first inputs) (second inputs))))))
+    (deref map-data)))
   
 (def parse-maps (memoize parse-maps-once))
 

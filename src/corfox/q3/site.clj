@@ -18,7 +18,7 @@
    [:title title]
    my-meta
    [:link {:type "text/css" :href "/resources/style.css" :rel "stylesheet"}]
-   [:link {:type "text/css" :href "css/dark-hive/jquery-ui-1.7.2.custom.css" 
+   [:link {:type "text/css" :href "/css/dark-hive/jquery-ui-1.7.2.custom.css" 
 	   :rel "stylesheet"}]
    [:script {:type "text/javascript" :src "/js/jquery-1.3.2.min.js"}]
    [:script {:type "text/javascript" :src "/js/jquery-ui-1.7.2.custom.min.js"}]
@@ -75,8 +75,10 @@
   
   ;(GET "*" (or (serve-file "." (params :*)) :next))
   ;(GET "/resources/*" (or (serve-file "./resources" (params :*)) :next))
-  (route/files "/")
-
+  (route/files "/resources" {:root "resources"})
+  (route/files "/css" {:root "css"})
+  (route/files "/js" {:root "js"})
+  
   ;(ANY "*" (page-not-found))
   (route/not-found "Page not found")
 
