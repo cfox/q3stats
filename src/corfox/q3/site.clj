@@ -36,8 +36,11 @@
 ;		       (chart "data2.json")
 		       ]))
 
-  (GET "/chart/:chartname" [chartname]
-       [200, {:Content-type "application/json"} (chart {:chartname chartname})])
+  (GET "/chart" request
+       {:status 200
+        :Content-type "application/json"
+        :body (chart (:params request))})
+;       [200 {:Content-type "application/json"} (chart (:params request))])
 
   (GET "/humans" []
        (page "Humans"

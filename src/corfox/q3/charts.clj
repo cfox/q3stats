@@ -2,7 +2,7 @@
   (:use (corfox.q3 stats ofchart)))
 
 (defmulti chart
-  (fn [m] (:chartname m)))
+  (fn [m] (:chart m)))
 
 (defn extract-player [m]
   (first (filter #(= (:name %) (:player m)) (players))))

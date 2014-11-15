@@ -64,11 +64,15 @@
                [:tr [:td (str "Kills per Map: " (kills-per-map player))]]
                [:tr [:td (str "Kill/Death Ratio: " (kill-death-ratio player))]]]]
          [:td (ofchart 
-               (str "/chart/player-kills-by-weapon?"
-                    (url-encode (str "player=" (:name player)))))]
+               (str "/chart?"
+                    (url-encode
+                     (str "chart=" "player-kills-by-weapon" "&"
+                          "player=" (:name player)))))]
          [:td (ofchart 
-               (str "/chart/player-kills-by-victim?"
-                    (url-encode (str "player=" (:name player)))))]
+               (str "/chart?"
+                    (url-encode
+                     (str "chart=" "player-kills-by-victim" "&"
+                          "player=" (:name player)))))]
          ]))
 		   
 (defn player-index []
@@ -95,9 +99,11 @@
 			 [:img {:src (arena-image-path mapname arena) 
 				:alt (arena-label mapname arena)}]
 			 (ofchart 
-			  (str "/chart/arena-kills-by-weapon?"
+			  (str "/chart?"
 			       (url-encode 
-				(str "mapname=" mapname "&" "arena=" arena))))])))
+				(str "chart=" "arena-kills-by-weapon" "&"
+                                     "mapname=" mapname "&"
+                                     "arena=" arena))))])))
 	      (:arenas map)))))
 
 (defn map-summary-header [map]
@@ -121,9 +127,11 @@
 			 [:img {:src (arena-image-path mapname arena) 
 				:alt (arena-label mapname arena)}]
 			 (ofchart 
-			  (str "/chart/arena-kills-by-weapon?"
+			  (str "/chart?"
 			       (url-encode 
-				(str "mapname=" mapname "&" "arena=" arena))))])))
+				(str "chart=" "arena-kills-by-weapon" "&"
+                                     "mapname=" mapname "&"
+                                     "arena=" arena))))])))
 	      (:arenas map)))))
 
 (defn map-tab
